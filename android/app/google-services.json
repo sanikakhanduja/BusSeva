@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "810953460152",
+    "project_id": "bus-seva-6144e",
+    "storage_bucket": "bus-seva-6144e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:810953460152:android:3cd4d033572b377cdca74d",
+        "android_client_info": {
+          "package_name": "in.gov.busseva.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi0BVZB5dBoLnJakjTKhe4K2re9SqDlYA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
