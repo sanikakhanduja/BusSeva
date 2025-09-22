@@ -2,8 +2,8 @@ name: Build Flutter APK
 
 on:
   push:
-    branches:
-      - fix/authentication-routing-cloudstore
+    branches: [main, fix/authentication-routing-cloudstore]
+    
   workflow_dispatch:
 
 jobs:
