@@ -1,17 +1,24 @@
-name: Build Flutter APK
+name: Build Flutter Apps (Android & iOS)
 
 on:
   push:
     branches: [main, fix/authentication-routing-cloudstore]
-    
+
   workflow_dispatch:
 
 jobs:
-  build:
+  build-android:
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
       - uses: subosito/flutter-action@v2
         with:
@@ -19,10 +26,54 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter build apk --release
+      - name: Analyze project source
+        run: flutter analyze
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
+      - name: Run tests
+        run: flutter test
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
         with:
-          name: app-release.apk
+          name: android-app-release.apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.3'
+
+      - name: Install CocoaPods
+        run: gem install cocoapods
+
+      - run: flutter pub get
+
+      - name: Install iOS pods
+        run: |
+          cd ios
+          pod install
+
+      - name: Build iOS app (no codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Create iOS Archive
+        run: |
+          mkdir -p ios_build
+          cp -r build/ios/iphoneos/Runner.app ios_build/
+          cd ios_build
+          zip -r ios-app-release.zip Runner.app
+
+      - name: Upload iOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-release.zip
+          path: ios_build/ios-app-release.zip
