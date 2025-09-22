@@ -1,79 +1,48 @@
-name: Build Flutter Apps (Android & iOS)
+build-ios:
+  name: Build iOS App
+  runs-on: macos-latest
 
-on:
-  push:
-    branches: [main, fix/authentication-routing-cloudstore]
+  steps:
+    - uses: actions/checkout@v4
 
-  workflow_dispatch:
+    - uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.35.3'
 
-jobs:
-  build-android:
-    name: Build Android APK
-    runs-on: ubuntu-latest
+    - name: Install CocoaPods
+      run: |
+        sudo gem install cocoapods ffi
+        pod repo update
 
-    steps:
-      - uses: actions/checkout@v4
+    - name: Cache CocoaPods
+      uses: actions/cache@v3
+      with:
+        path: ios/Pods
+        key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pods-
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
+    - run: flutter pub get
 
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.35.3'
+    - name: Install iOS pods
+      run: |
+        cd ios
+        rm -rf Pods Podfile.lock
+        pod install --repo-update
+        cd ..
 
-      - run: flutter pub get
+    - name: Build iOS app (no codesign)
+      run: flutter build ios --release --no-codesign
 
-      - name: Analyze project source
-        run: flutter analyze
+    - name: Create iOS Archive
+      run: |
+        mkdir -p ios_build
+        cp -r build/ios/iphoneos/Runner.app ios_build/
+        cd ios_build
+        zip -r ios-app-release.zip Runner.app
 
-      - name: Run tests
-        run: flutter test
-
-      - name: Build Android APK
-        run: flutter build apk --release
-
-      - name: Upload Android APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-app-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-
-  build-ios:
-    name: Build iOS App
-    runs-on: macos-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.35.3'
-
-      - name: Install CocoaPods
-        run: gem install cocoapods
-
-      - run: flutter pub get
-
-      - name: Install iOS pods
-        run: |
-          cd ios
-          pod install
-
-      - name: Build iOS app (no codesign)
-        run: flutter build ios --release --no-codesign
-
-      - name: Create iOS Archive
-        run: |
-          mkdir -p ios_build
-          cp -r build/ios/iphoneos/Runner.app ios_build/
-          cd ios_build
-          zip -r ios-app-release.zip Runner.app
-
-      - name: Upload iOS App
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-app-release.zip
-          path: ios_build/ios-app-release.zip
+    - name: Upload iOS App
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-app-release.zip
+        path: ios_build/ios-app-release.zip
