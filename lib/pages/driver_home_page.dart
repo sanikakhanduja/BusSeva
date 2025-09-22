@@ -236,7 +236,7 @@ class DriverHomePage extends StatelessWidget {
                   subtitle: "Issue reporting",
                   icon: Icons.report_problem,
                   color: const Color(0xFFF59E0B),
-                  page: const ReportPage(),
+                  page: const ReportsPage(),
                 ),
                 _buildDashboardTile(
                   context,

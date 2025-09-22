@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
       home: const AuthWrapper(),
       routes: {
         '/login': (context) => const LoginPage(),
-        '/signup': (context) => const SignUpPage(),
+        '/signup': (context) => const DriverSignUpPage(),
         '/home': (context) => const HomePage(),
         '/driverHome': (context) => const DriverHomePage(), // new route
       },
@@ -77,7 +77,7 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // If user is signed in, show DRIVER HOME instead of old home
+        // If user is signed in, show driver home page
         if (snapshot.hasData && snapshot.data != null) {
           return const DriverHomePage();
         }
