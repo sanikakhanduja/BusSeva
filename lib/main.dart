@@ -3,30 +3,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
-// Existing pages
+// Import your pages
 import 'pages/login_page.dart';
 import 'pages/sign_up_page.dart';
-
-// Old home (keep it if you need for admins/testing)
-import 'pages/home_page.dart';
-
-// New driver pages
+import 'pages/selfie_verification_page.dart'; // Your existing selfie verification page
 import 'pages/driver_home_page.dart';
-
-import 'services/auth_service.dart';
+import 'pages/diagnostics_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    print("✅ Firebase initialized successfully!");
-  } catch (e) {
-    print("❌ Firebase initialization failed: $e");
-  }
-
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -37,18 +23,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Busseva',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
       home: const AuthWrapper(),
       routes: {
         '/login': (context) => const LoginPage(),
-        '/signup': (context) => const DriverSignUpPage(),
-        '/home': (context) => const HomePage(),
-        '/driverHome': (context) => const DriverHomePage(), // new route
+        '/signup': (context) => const SignUpPage(),
+        '/selfie-verification': (context) => const SelfieVerificationPage(),
+        '/driverHome': (context) =>
+            const DriverHomePage(), // Match your selfie verification page navigation
+        '/driver-home': (context) =>
+            const DriverHomePage(), // Keep both for compatibility
+        '/diagnostics': (context) => const DiagnosticsPage(),
       },
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -59,30 +46,21 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: AuthService().authStateChanges,
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Show loading spinner while checking auth state
+        // Show loading while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Loading...'),
-                ],
-              ),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // If user is signed in, show driver home page
+        // User is logged in - go directly to driver home page
         if (snapshot.hasData && snapshot.data != null) {
           return const DriverHomePage();
         }
 
-        // If user is not signed in, show login page
+        // User is not logged in, show login page
         return const LoginPage();
       },
     );

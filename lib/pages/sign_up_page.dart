@@ -1,75 +1,116 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
 
-class DriverSignUpPage extends StatefulWidget {
-  const DriverSignUpPage({super.key});
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
 
   @override
-  State<DriverSignUpPage> createState() => _DriverSignUpPageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class _DriverSignUpPageState extends State<DriverSignUpPage> {
-  final _formKey = GlobalKey<FormState>();
-
+class _SignUpPageState extends State<SignUpPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _licenseNumberController = TextEditingController();
-  final _aadhaarNumberController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _authService = AuthService();
 
   bool _isLoading = false;
-  bool _agreed = false;
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate() || !_agreed) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() {
       _isLoading = true;
     });
 
-    // TODO: Implement signup logic
+    try {
+      await _authService.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    await Future.delayed(const Duration(seconds: 2)); // Simulate delay
+      // Sign out the user so they don't auto-login
+      await _authService.signOut();
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("✅ Signup logic pending implementation")),
-    );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Account created successfully! Please complete selfie verification.',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-    setState(() {
-      _isLoading = false;
-    });
+        // Navigate to selfie verification page
+        Navigator.of(context).pushReplacementNamed('/selfie-verification');
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'Signup failed';
+      if (e.code == 'weak-password') {
+        message = 'The password provided is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'The account already exists for that email.';
+      } else if (e.code == 'invalid-email') {
+        message = 'The email address is not valid.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final inputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-    );
-    final enabledBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: Colors.grey.shade300),
-    );
-    final focusedBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Colors.blue),
-    );
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
-            child: ListView(
-              shrinkWrap: true,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Logo or Title
                 const Icon(Icons.directions_bus, size: 80, color: Colors.blue),
                 const SizedBox(height: 20),
-                Text(
-                  'Driver Registration',
-                  style: GoogleFonts.inter(
+                const Text(
+                  'Join Busseva',
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.blue,
@@ -77,9 +118,9 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Sign up to manage your routes and schedules with BusSeva',
-                  style: GoogleFonts.inter(fontSize: 16, color: Colors.grey),
+                const Text(
+                  'Create your driver account',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
@@ -91,9 +132,17 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                   decoration: InputDecoration(
                     labelText: 'Email',
                     prefixIcon: const Icon(Icons.email),
-                    border: inputBorder,
-                    enabledBorder: enabledBorder,
-                    focusedBorder: focusedBorder,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.blue),
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -128,9 +177,17 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                         });
                       },
                     ),
-                    border: inputBorder,
-                    enabledBorder: enabledBorder,
-                    focusedBorder: focusedBorder,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.blue),
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -144,65 +201,53 @@ class _DriverSignUpPageState extends State<DriverSignUpPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // License Number Field
+                // Confirm Password Field
                 TextFormField(
-                  controller: _licenseNumberController,
+                  controller: _confirmPasswordController,
+                  obscureText: !_isConfirmPasswordVisible,
                   decoration: InputDecoration(
-                    labelText: "License Number",
-                    prefixIcon: const Icon(Icons.badge_outlined),
-                    border: inputBorder,
-                    enabledBorder: enabledBorder,
-                    focusedBorder: focusedBorder,
-                  ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? "Enter your license number"
-                      : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Aadhaar Number Field
-                TextFormField(
-                  controller: _aadhaarNumberController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Aadhaar Number",
-                    prefixIcon: const Icon(Icons.credit_card_outlined),
-                    border: inputBorder,
-                    enabledBorder: enabledBorder,
-                    focusedBorder: focusedBorder,
+                    labelText: 'Confirm Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isConfirmPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isConfirmPasswordVisible =
+                              !_isConfirmPasswordVisible;
+                        });
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.blue),
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Enter your Aadhaar number";
+                      return 'Please confirm your password';
                     }
-                    if (!RegExp(r'^\d{12}$').hasMatch(value)) {
-                      return "Enter a valid 12-digit Aadhaar number";
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
                     }
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
-
-                // Terms Checkbox
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _agreed,
-                      onChanged: (val) =>
-                          setState(() => _agreed = val ?? false),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'I agree to the Terms of Service and Privacy Policy',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 // Sign Up Button
                 ElevatedButton(
-                  onPressed: (_isLoading || !_agreed) ? null : _signUp,
+                  onPressed: _isLoading ? null : _signUp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,

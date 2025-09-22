@@ -19,11 +19,12 @@ class DriverHomePage extends StatelessWidget {
         elevation: 0,
         backgroundColor: Colors.white,
         title: const Text(
-          "Driver Dashboard",
+          "BusSeva",
           style: TextStyle(
             color: Color(0xFF1E293B),
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
         ),
         actions: [

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:io';
-// import 'package:image_picker/image_picker.dart';
-// import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class TripPage extends StatefulWidget {
   const TripPage({super.key});
@@ -15,7 +13,6 @@ class _TripPageState extends State<TripPage> {
   // Trip state variables
   bool _occupancyFull = false;
   int _occupancyPercentage = 75;
-  bool _isMapVisible = false;
   Timer? _shiftTimer;
   Duration _shiftDuration = Duration.zero;
   Timer? _gpsTimer;
@@ -25,7 +22,24 @@ class _TripPageState extends State<TripPage> {
   final String _driverName = "Rajesh Kumar";
   final String _busNumber = "DL-1PC-1234";
   final String _busCapacity = "52";
-  final String _route = "Connaught Place → IGDTUW";
+  final String _route = "Jaipur to Lucknow";
+
+  // Bus stops with coordinates
+  final List<Map<String, dynamic>> busStops = [
+    {'name': 'Jaipur', 'lat': 26.907524, 'lng': 75.739639},
+    {'name': 'Bassi', 'lat': 26.839153, 'lng': 76.050499},
+    {'name': 'Sakrai', 'lat': 26.916187, 'lng': 76.688911},
+    {'name': 'Weir Tehsil (Bharatpur)', 'lat': 25.680000, 'lng': 75.730000},
+    {'name': 'Kiraoli', 'lat': 27.136724, 'lng': 77.785255},
+    {'name': 'Agra', 'lat': 27.176670, 'lng': 78.008076},
+    {'name': 'Firozabad', 'lat': 27.158994, 'lng': 78.394230},
+    {'name': 'Shikohabad', 'lat': 27.213758, 'lng': 78.553658},
+    {'name': 'Etawah', 'lat': 26.794128, 'lng': 79.017860},
+    {'name': 'Bidhuna', 'lat': 26.727338, 'lng': 79.446542},
+    {'name': 'Tirwaganj', 'lat': 26.761011, 'lng': 79.897902},
+    {'name': 'Kakori', 'lat': 26.859342, 'lng': 80.780632},
+    {'name': 'Lucknow', 'lat': 26.846690, 'lng': 80.946170},
+  ];
 
   @override
   void initState() {
@@ -178,55 +192,40 @@ class _TripPageState extends State<TripPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Button to open full screen map
                   ElevatedButton.icon(
                     onPressed: () {
-                      setState(() {
-                        _isMapVisible = !_isMapVisible;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            _isMapVisible
-                                ? "Map loaded 🗺️"
-                                : "Map hidden (data saved)",
-                          ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FullMapPage(stops: busStops),
                         ),
                       );
                     },
-                    icon: Icon(_isMapVisible ? Icons.map_outlined : Icons.map),
-                    label: Text(_isMapVisible ? 'Hide Map' : 'Show Map'),
+                    icon: const Icon(Icons.map),
+                    label: const Text('Open Full Map'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.blue,
                       side: const BorderSide(color: Colors.blue),
                     ),
                   ),
-                  if (_isMapVisible) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.map, size: 48, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text(
-                              'Map View Loaded',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
+
+                  const SizedBox(height: 16),
+
+                  // Button to open text route page
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RouteTextPage(stops: busStops),
                         ),
-                      ),
-                    ),
-                  ],
+                      );
+                    },
+                    child: const Text("Show Route in Text"),
+                  ),
                 ],
               ),
             ),
@@ -369,6 +368,144 @@ class _TripPageState extends State<TripPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Full screen map page showing all stops with markers and polyline
+class FullMapPage extends StatefulWidget {
+  final List<Map<String, dynamic>> stops;
+
+  const FullMapPage({super.key, required this.stops});
+
+  @override
+  State<FullMapPage> createState() => _FullMapPageState();
+}
+
+class _FullMapPageState extends State<FullMapPage> {
+  GoogleMapController? _mapController;
+  Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _initMarkersAndPolyline();
+  }
+
+  void _initMarkersAndPolyline() {
+    Set<Marker> markers = widget.stops.asMap().entries.map((entry) {
+      int idx = entry.key;
+      var stop = entry.value;
+      return Marker(
+        markerId: MarkerId('stop$idx'),
+        position: LatLng(stop['lat'], stop['lng']),
+        infoWindow: InfoWindow(title: stop['name']),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      );
+    }).toSet();
+
+    List<LatLng> polylinePoints = widget.stops
+        .map((stop) => LatLng(stop['lat'], stop['lng']))
+        .toList();
+
+    Polyline polyline = Polyline(
+      polylineId: const PolylineId('route'),
+      points: polylinePoints,
+      color: Colors.blue,
+      width: 5,
+    );
+
+    setState(() {
+      _markers = markers;
+      _polylines = {polyline};
+    });
+  }
+
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+    _fitMapToBounds();
+  }
+
+  Future<void> _fitMapToBounds() async {
+    if (_markers.isEmpty || _mapController == null) return;
+
+    double minLat = _markers.first.position.latitude;
+    double maxLat = _markers.first.position.latitude;
+    double minLng = _markers.first.position.longitude;
+    double maxLng = _markers.first.position.longitude;
+
+    for (var marker in _markers) {
+      if (marker.position.latitude < minLat) minLat = marker.position.latitude;
+      if (marker.position.latitude > maxLat) maxLat = marker.position.latitude;
+      if (marker.position.longitude < minLng)
+        minLng = marker.position.longitude;
+      if (marker.position.longitude > maxLng)
+        maxLng = marker.position.longitude;
+    }
+
+    LatLngBounds bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+
+    CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(bounds, 50);
+    await _mapController!.animateCamera(cameraUpdate);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Full Route Map')),
+      body: GoogleMap(
+        mapType: MapType.normal,
+        markers: _markers,
+        polylines: _polylines,
+        onMapCreated: _onMapCreated,
+        initialCameraPosition: CameraPosition(
+          target: LatLng(widget.stops[0]['lat'], widget.stops[0]['lng']),
+          zoom: 10,
+        ),
+      ),
+    );
+  }
+}
+
+// New page to show route stops in text form
+class RouteTextPage extends StatelessWidget {
+  final List<Map<String, dynamic>> stops;
+
+  const RouteTextPage({super.key, required this.stops});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Bus Route Stops")),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: stops.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.blue,
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  stops[index]['name'],
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

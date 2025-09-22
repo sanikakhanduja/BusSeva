@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'diagnostics_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -47,6 +46,9 @@ class _LoginPageState extends State<LoginPage> {
             backgroundColor: Colors.green,
           ),
         );
+
+        // Navigate to driver home page after successful login
+        Navigator.of(context).pushReplacementNamed('/driver-home');
       }
     } catch (e) {
       if (mounted) {
@@ -93,45 +95,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _testSignup() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Create a test user to verify network connectivity
-      final testEmail = 'test${DateTime.now().millisecondsSinceEpoch}@test.com';
-      await _authService.createUserWithEmailAndPassword(
-        email: testEmail,
-        password: 'test123456',
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Network working! Test user created: $testEmail'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Network test failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,11 +112,12 @@ class _LoginPageState extends State<LoginPage> {
                 const Icon(Icons.directions_bus, size: 80, color: Colors.blue),
                 const SizedBox(height: 20),
                 const Text(
-                  'Welcome to Busseva',
+                  'Welcome to BusSeva',
                   style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
                     color: Colors.blue,
+                    letterSpacing: 0.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -299,35 +263,6 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
-
-                // Diagnostics Button
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const DiagnosticsPage(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.bug_report, size: 16),
-                  label: const Text('Run Diagnostics'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Test Network Button
-                TextButton.icon(
-                  onPressed: _isLoading ? null : _testSignup,
-                  icon: const Icon(Icons.network_check, size: 16),
-                  label: const Text('Test Network'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.orange.shade600,
-                  ),
                 ),
               ],
             ),
