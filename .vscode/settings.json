@@ -1,5 +1,6 @@
 {
     "editor.codeActionsOnSave": {
         "source.fixAll": "explicit"
-    }
+    },
+    "cmake.sourceDirectory": "/Users/sanikakhanduja/development/projects/busseva_1/linux"
 }

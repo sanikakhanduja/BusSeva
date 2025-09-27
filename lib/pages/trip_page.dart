@@ -439,10 +439,12 @@ class _FullMapPageState extends State<FullMapPage> {
     for (var marker in _markers) {
       if (marker.position.latitude < minLat) minLat = marker.position.latitude;
       if (marker.position.latitude > maxLat) maxLat = marker.position.latitude;
-      if (marker.position.longitude < minLng)
+      if (marker.position.longitude < minLng) {
         minLng = marker.position.longitude;
-      if (marker.position.longitude > maxLng)
+      }
+      if (marker.position.longitude > maxLng) {
         maxLng = marker.position.longitude;
+      }
     }
 
     LatLngBounds bounds = LatLngBounds(

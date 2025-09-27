@@ -6,8 +6,15 @@ import 'report_page.dart';
 import 'settings_page.dart';
 import '../services/auth_service.dart';
 
-class DriverHomePage extends StatelessWidget {
+class DriverHomePage extends StatefulWidget {
   const DriverHomePage({super.key});
+
+  @override
+  State<DriverHomePage> createState() => _DriverHomePageState();
+}
+
+class _DriverHomePageState extends State<DriverHomePage> {
+  bool _isLoggingOut = false;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +58,8 @@ class DriverHomePage extends StatelessWidget {
                   await _handleLogout(context);
                 } else if (value == 'profile') {
                   _showUserInfo(context, user);
+                } else if (value == 'chatbot') {
+                  Navigator.pushNamed(context, '/chatbot');
                 }
               },
               itemBuilder: (BuildContext context) => [
@@ -73,16 +82,47 @@ class DriverHomePage extends StatelessWidget {
                     ],
                   ),
                 ),
-                const PopupMenuItem(
-                  value: 'logout',
+                PopupMenuItem(
+                  value: 'chatbot',
                   child: Row(
                     children: [
-                      Icon(Icons.logout, color: Color(0xFFEF4444)),
-                      SizedBox(width: 12),
-                      Text(
-                        'Logout',
+                      const Icon(
+                        Icons.chat_bubble_outline,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'AI Assistant',
                         style: TextStyle(
-                          color: Color(0xFFEF4444),
+                          color: Color(0xFF334155),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'logout',
+                  enabled: !_isLoggingOut,
+                  child: Row(
+                    children: [
+                      _isLoggingOut
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFFEF4444),
+                              ),
+                            )
+                          : const Icon(Icons.logout, color: Color(0xFFEF4444)),
+                      const SizedBox(width: 12),
+                      Text(
+                        _isLoggingOut ? 'Signing out...' : 'Logout',
+                        style: TextStyle(
+                          color: _isLoggingOut
+                              ? const Color(0xFF64748B)
+                              : const Color(0xFFEF4444),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -158,6 +198,38 @@ class DriverHomePage extends StatelessWidget {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      // Quick logout button in welcome section
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                          ),
+                        ),
+                        child: IconButton(
+                          onPressed: _isLoggingOut
+                              ? null
+                              : () => _handleLogout(context),
+                          icon: _isLoggingOut
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.logout,
+                                  color: Colors.white.withOpacity(0.9),
+                                  size: 20,
+                                ),
+                          tooltip: _isLoggingOut
+                              ? 'Signing out...'
+                              : 'Quick Logout',
                         ),
                       ),
                     ],
@@ -416,15 +488,254 @@ class DriverHomePage extends StatelessWidget {
   }
 
   Future<void> _handleLogout(BuildContext context) async {
-    try {
-      await AuthService().signOut();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error logging out: $e'),
-          backgroundColor: const Color(0xFFEF4444),
+    if (_isLoggingOut) {
+      print('Logout already in progress, skipping...');
+      return;
+    }
+
+    print('_handleLogout called');
+
+    // Enhanced confirmation dialog with better styling
+    final bool? shouldLogout = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.logout,
+                color: Color(0xFFEF4444),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Confirm Logout',
+              style: TextStyle(
+                color: Color(0xFF1E293B),
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-      );
+        content: const Text(
+          'Are you sure you want to sign out? You\'ll need to log in again to access the app.',
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF64748B),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Sign Out',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    print('Logout confirmation result: $shouldLogout');
+    if (shouldLogout != true) {
+      print('User cancelled logout');
+      return;
+    }
+
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    try {
+      print('Calling AuthService.signOut()...');
+
+      // Show loading snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Text(
+                  'Signing out...',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF3B82F6),
+            duration: const Duration(seconds: 10),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+
+      // Use the improved AuthService
+      final success = await AuthService().signOut();
+
+      print('AuthService.signOut() completed with result: $success');
+
+      if (!mounted) return;
+
+      // Clear the loading snackbar
+      ScaffoldMessenger.of(context).clearSnackBars();
+
+      if (success) {
+        // Show success message briefly
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                const Text(
+                  'Successfully signed out',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+
+        // Wait a moment then navigate to login page
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (mounted) {
+          // Navigate to login page and clear all previous routes
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/login',
+            (route) => false,
+          );
+        }
+        
+        print('Logout successful - Navigated to login page');
+      } else {
+        // Try force logout
+        print('Standard logout failed, trying force logout...');
+        final forceSuccess = await AuthService().forceSignOut();
+
+        if (forceSuccess) {
+          print('Force logout successful');
+          
+          // Navigate to login page after force logout
+          if (mounted) {
+            await Future.delayed(const Duration(milliseconds: 500));
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/login',
+              (route) => false,
+            );
+          }
+        } else {
+          print('Both logout methods failed');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Logout failed. Please try again.',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+                backgroundColor: const Color(0xFFEF4444),
+                duration: const Duration(seconds: 4),
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: () => _handleLogout(context),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error during logout: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Error logging out: $e',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _handleLogout(context),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoggingOut = false;
+        });
+      }
     }
   }
 
@@ -433,22 +744,46 @@ class DriverHomePage extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Profile Information',
-          style: TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.w600,
-          ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.person,
+                color: Color(0xFF3B82F6),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Profile Information',
+              style: TextStyle(
+                color: Color(0xFF1E293B),
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInfoRow('Email', user?.email ?? 'Not available'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _buildInfoRow(
               'Status',
               user?.emailVerified == true ? 'Verified' : 'Unverified',
+            ),
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              'Last Sign In',
+              user?.metadata.lastSignInTime?.toString().split('.')[0] ??
+                  'Unknown',
             ),
           ],
         ),
@@ -457,6 +792,7 @@ class DriverHomePage extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF3B82F6),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             child: const Text(
               'Close',
@@ -475,12 +811,18 @@ class DriverHomePage extends StatelessWidget {
         Text(
           '$label: ',
           style: const TextStyle(
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: Color(0xFF64748B),
           ),
         ),
         Expanded(
-          child: Text(value, style: const TextStyle(color: Color(0xFF1E293B))),
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF1E293B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
       ],
     );
